@@ -11,7 +11,7 @@ const PORT = 5000;
 const app = express();
 app.use(express.json());
 var corsOptions = {
-  origin: "http://localhost:3000",
+  origin: ["http://localhost:3000","https://markood-central.vercel.app/en","https://markood-central.vercel.app"],
   optionsSuccessStatus: 200,
 };
 app.use(cors(corsOptions));
