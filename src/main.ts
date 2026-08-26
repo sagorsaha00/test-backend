@@ -1,33 +1,48 @@
-import express from "express";
+import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import { Request, Response } from "express";
 import { connectDB } from "./schema/db.js";
 import postRoute from "./router/postRoute.js";
 
 dotenv.config();
-const PORT = 5000;
 
 const app = express();
+
 app.use(express.json());
-var corsOptions = {
-  origin: ["http://localhost:3000","https://markood-central.vercel.app/en","https://markood-central.vercel.app"],
+
+const corsOptions = {
+  origin: ["http://localhost:3000", "https://markood-central.vercel.app"],
   optionsSuccessStatus: 200,
 };
+
 app.use(cors(corsOptions));
+
 app.use(express.urlencoded({ extended: true }));
 
-app.use("/api", postRoute);
-app.get("/", (req: Request, res: Response) => {
-  res.json({
-    message: "Welcome to the Markood Privacy Policy Backend API",
-  });
+// Database connection before API routes
+app.use(async (req, res, next) => {
+  try {
+    await connectDB();
+    next();
+  } catch (error) {
+    console.error("❌ Database connection failed:", error);
+
+    res.status(500).json({
+      success: false,
+      message: "Database connection failed",
+    });
+  }
 });
 
-app.listen(PORT, () => {
-  connectDB();
-  console.log("database connected");
-  console.log("server is running", PORT);
+// API routes
+app.use("/api", postRoute);
+
+// Root route
+app.get("/", (req: Request, res: Response) => {
+  res.json({
+    success: true,
+    message: "Welcome to the Markood Privacy Policy Backend API",
+  });
 });
 
 export default app;
