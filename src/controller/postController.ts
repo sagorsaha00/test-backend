@@ -1,3 +1,4 @@
+import mongoose from "mongoose";
 import { dataSave } from "../schema/index";
 import { Request, Response } from "express";
 function slugify(value: string): string {
@@ -104,4 +105,252 @@ export class PostController {
       });
     }
   };
+  searchHelpArticles = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const search = String(req.query.search || "").trim();
+
+      if (!search) {
+        res.status(200).json({
+          success: true,
+          count: 0,
+          data: [],
+        });
+        return;
+      }
+
+      // Escape regex special characters
+      const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+
+      const articles = await dataSave
+        .find({
+          status: "published",
+          title: {
+            $regex: escapedSearch,
+            $options: "i",
+          },
+        })
+        .select("_id title slug summary readTime categoryKey itemKey")
+        .sort({
+          createdAt: -1,
+        })
+        .limit(20)
+        .lean();
+
+      res.status(200).json({
+        success: true,
+        count: articles.length,
+        data: articles,
+      });
+    } catch (error) {
+      console.error("Error searching help articles:", error);
+      res.status(500).json({
+        success: false,
+        message: "Server error while searching help articles",
+      });
+    }
+  };
+  getSingleData = async (req: Request, res: Response): Promise<void> => {
+    console.log("get Single Data");
+    try {
+      const { article } = req.params;
+      console.log("articleData", article);
+
+      if (!article) {
+        res.status(400).json({
+          success: false,
+          message: "Article ID is required",
+        });
+        return;
+      }
+
+      const post = await dataSave.findOne({
+        _id: article,
+        status: "published",
+      });
+
+      if (!post) {
+        res.status(404).json({
+          success: false,
+          message: "Help article not found",
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        data: post,
+      });
+    } catch (error) {
+      console.error("Error fetching help article:", error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error while fetching help article",
+      });
+    }
+  };
+  getAllData = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const posts = await dataSave
+        .find({ status: "published" })
+        .select("_id title summary slug itemKey categoryKey  createdAt updatedAt")
+        .sort({ createdAt: -1 });
+
+      res.status(200).json({
+        success: true,
+        data: posts,
+      });
+    } catch (error) {
+      console.error("Error fetching updates:", error);
+      res.status(500).json({
+        success: false,
+        message: "Failed to fetch updates",
+      });
+    }
+  };
+
+  deleteData = async (req: Request, res: Response): Promise<void> => {
+    try {
+      const { id } = req.params;
+
+      if (!id) {
+        res.status(400).json({
+          success: false,
+          message: "Post ID is required",
+        });
+        return;
+      }
+
+      const deletedPost = await dataSave.findByIdAndDelete(id);
+
+      if (!deletedPost) {
+        res.status(404).json({
+          success: false,
+          message: "Post not found",
+        });
+        return;
+      }
+
+      res.status(200).json({
+        success: true,
+        message: "Post deleted successfully",
+        data: deletedPost,
+      });
+    } catch (error) {
+      console.error("Delete post error:", error);
+
+      res.status(500).json({
+        success: false,
+        message: "Server error while deleting post",
+      });
+    }
+  };
+  // updateHelpPostById = async (req: Request, res: Response): Promise<void> => {
+  //   try {
+  //     const { id } = req.params as string | string[];
+
+  //     // Validate ID
+  //     if (!mongoose.Types.ObjectId.isValid(id)) {
+  //       res.status(400).json({
+  //         success: false,
+  //         message: "Invalid article ID",
+  //       });
+  //       return;
+  //     }
+
+  //     // Find existing article first
+  //     const existingArticle = await dataSave.findById(id);
+
+  //     if (!existingArticle) {
+  //       res.status(404).json({
+  //         success: false,
+  //         message: "Article not found",
+  //       });
+  //       return;
+  //     }
+
+  //     /**
+  //      * Only allow fields from your schema.
+  //      * MongoDB internal fields are NOT allowed.
+  //      */
+  //     const allowedFields = [
+  //       "categoryKey",
+  //       "itemKey",
+  //       "title",
+  //       "slug",
+  //       "summary",
+  //       "readTime",
+  //       "blocks",
+  //       "nextArticle",
+  //       "status",
+  //     ];
+
+  //     const updateData: Record<string, any> = {};
+
+  //     for (const field of allowedFields) {
+  //       if (req.body[field] !== undefined) {
+  //         updateData[field] = req.body[field];
+  //       }
+  //     }
+
+  //     // Nothing to update
+  //     if (Object.keys(updateData).length === 0) {
+  //       res.status(400).json({
+  //         success: false,
+  //         message: "No valid fields provided for update",
+  //       });
+  //       return;
+  //     }
+
+  //     // Check duplicate slug
+  //     if (updateData.slug && updateData.slug !== existingArticle.slug) {
+  //       const slugExists = await dataSave.findOne({
+  //         slug: updateData.slug,
+  //         _id: { $ne: id },
+  //       });
+
+  //       if (slugExists) {
+  //         res.status(409).json({
+  //           success: false,
+  //           message: "This slug already exists",
+  //         });
+  //         return;
+  //       }
+  //     }
+
+  //     // Update
+  //     const updatedArticle = await dataSave.findByIdAndUpdate(
+  //       id,
+  //       {
+  //         $set: updateData,
+  //       },
+  //       {
+  //         new: true,
+  //         runValidators: true,
+  //       },
+  //     );
+
+  //     res.status(200).json({
+  //       success: true,
+  //       message: "Article updated successfully",
+  //       data: updatedArticle,
+  //     });
+  //   } catch (error: any) {
+  //     console.error("UPDATE ARTICLE ERROR:", error);
+
+  //     // Duplicate key error
+  //     if (error.code === 11000) {
+  //       res.status(409).json({
+  //         success: false,
+  //         message: "Slug already exists",
+  //       });
+  //       return;
+  //     }
+
+  //     res.status(500).json({
+  //       success: false,
+  //       message: error.message || "Failed to update article",
+  //     });
+  //   }
+  // };
 }

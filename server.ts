@@ -27,3 +27,5 @@ app.listen(PORT, () => {
   console.log("database connected");
   console.log("server is running", PORT);
 });
+
+export default app
