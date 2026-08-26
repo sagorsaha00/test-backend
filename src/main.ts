@@ -2,8 +2,8 @@ import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
 import { Request, Response } from "express";
-import { connectDB } from "./schema/db";
-import postRoute from "./router/postRoute";
+import { connectDB } from "./schema/db.js";
+import postRoute from "./router/postRoute.js";
 
 dotenv.config();
 const PORT = 5000;

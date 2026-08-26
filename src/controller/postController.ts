@@ -1,5 +1,5 @@
 import mongoose from "mongoose";
-import { dataSave } from "../schema/index";
+import { dataSave } from "../schema/index.js";
 import { Request, Response } from "express";
 function slugify(value: string): string {
   return value
@@ -193,7 +193,9 @@ export class PostController {
     try {
       const posts = await dataSave
         .find({ status: "published" })
-        .select("_id title summary slug itemKey categoryKey  createdAt updatedAt")
+        .select(
+          "_id title summary slug itemKey categoryKey  createdAt updatedAt",
+        )
         .sort({ createdAt: -1 });
 
       res.status(200).json({
