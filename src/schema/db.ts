@@ -1,16 +1,16 @@
 import mongoose from "mongoose";
+import dns from "node:dns";
+
+dns.setServers(["8.8.8.8"]);
 
 let cachedConnection: typeof mongoose | null = null;
 let cachedPromise: Promise<typeof mongoose> | null = null;
 
 export const connectDB = async (): Promise<typeof mongoose> => {
-  // Already connected
   if (cachedConnection && mongoose.connection.readyState === 1) {
     console.log("✅ Using existing MongoDB connection");
     return cachedConnection;
   }
-
-  // Connection already in progress
   if (cachedPromise) {
     return cachedPromise;
   }
